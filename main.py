@@ -3,7 +3,7 @@ import time
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common import by
+from selenium.webdriver.common.by import By
 import telegram
 from urllib import parse
 from webdriver_manager.chrome import ChromeDriverManager
@@ -18,7 +18,7 @@ def is_benefit_available(driver, benefit_name):
     # let the page enough load time.
     time.sleep(0.5)
     # There is a div with class='results' only when there is no matched benefit
-    elements = driver.find_elements(by.By.XPATH, '//div[@class="results"]')
+    elements = driver.find_elements(By.CSS_SELECTOR, 'div.results')
     return bool(not elements)
 
 
