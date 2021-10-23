@@ -25,14 +25,20 @@ def _create_webdriver():
     return webdriver.Chrome(options=chrome_options)
 
 
-def is_benefit_available(driver, benefit_name):
-    url = PAIS_PLUS_SEARCH_ENDPOINT.format(benefit_name)
+def _get_paisplus_benefits(driver, benefit_keyword):
+    """ scarping benefits that match the benefit_keyword.
+    if there is at least one match, returns the amount, and png screenshot of the benefits.
+    if there is no match, returns (0, None)"""
+
+    url = PAIS_PLUS_SEARCH_ENDPOINT.format(parse.quote(benefit_keyword))
     driver.get(url)
-    # let the page enough load time.
-    time.sleep(0.5)
-    # There is a div with class='results' only when there is no matched benefit
-    elements = driver.find_elements(By.CSS_SELECTOR, 'div.results')
-    return bool(not elements)
+    matched_items = driver.find_elements(By.CSS_SELECTOR, 'a.card_item')
+    if matched_items:
+        parent_item = matched_items[0].find_element(By.XPATH, "..")
+        time.sleep(1)  # wait for the pictures to be loaded
+        return len(matched_items), parent_item.screenshot_as_png
+
+    return 0, None
 
 
 def main():
@@ -40,14 +46,19 @@ def main():
     bot = telegram.Bot(token=telegram_token)
     pais_plus_benefits = ["wolt", "ניצת", "רמי לוי"]
     driver = _create_webdriver()
+    driver.implicitly_wait(2)  # keep polling for 2 seconds if any element is not immediately available
 
     while True:
         for benefit_name in pais_plus_benefits.copy():
-            if is_benefit_available(driver, benefit_name):
+            number_of_benefits, screenshot = _get_paisplus_benefits(driver, benefit_name)
+
+            if number_of_benefits:
+                caption = f"found {number_of_benefits} benefit" + "s" if number_of_benefits > 1 else ""
+                caption += f"\n{driver.current_url}"
+                bot.send_photo(chat_id=user_id, photo=screenshot, caption=caption)
                 pais_plus_benefits.remove(benefit_name)
                 print(f'{benefit_name} is available')
-                url = PAIS_PLUS_SEARCH_ENDPOINT.format(parse.quote(benefit_name))
-                bot.send_message(text=f"{benefit_name} available: {url}", chat_id=user_id)
+
         time.sleep(CHECK_INTERVAL_IN_SECONDS)
 
 
