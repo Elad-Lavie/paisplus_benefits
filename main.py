@@ -2,14 +2,27 @@ import sys
 import time
 
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 import telegram
 from urllib import parse
-from webdriver_manager.chrome import ChromeDriverManager
 
 PAIS_PLUS_SEARCH_ENDPOINT = r"https://www.paisplus.co.il/search?query={}"
 CHECK_INTERVAL_IN_SECONDS = 5 * 60
+
+
+def _create_webdriver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--window-size=1080x1920')
+    chrome_options.add_argument('--hide-scrollbars')
+    chrome_options.add_argument('--single-process')
+    chrome_options.add_argument('--ignore-certificate-errors')
+    chrome_options.add_argument(
+        'user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)'
+        ' Chrome/61.0.3163.100 Safari/537.36')
+
+    return webdriver.Chrome(options=chrome_options)
 
 
 def is_benefit_available(driver, benefit_name):
@@ -26,7 +39,7 @@ def main():
     user_id, telegram_token = sys.argv[1:]
     bot = telegram.Bot(token=telegram_token)
     pais_plus_benefits = ["wolt", "ניצת", "רמי לוי"]
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    driver = _create_webdriver()
 
     while True:
         for benefit_name in pais_plus_benefits.copy():
